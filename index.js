@@ -1,70 +1,72 @@
 
 const mineflayer = require('mineflayer');
-
-const CONFIG = {
-  host: '9a3smp.mcsh.gg',
-  port: 25565,
-  username: 'Bot_AFK_247_6',
-  version: false,
-  reconnectDelay: 30000
-};
+const http = require('http');
 
 let bot = null;
-let reconnectTimer = null;
+let retry = null;
+let swingTimer = null;
 let stopped = false;
+let status = 'connecting';
 
 function connect() {
   if (stopped || bot) return;
 
-  console.log('[Bot 6] Đang kết nối...');
+  status = 'connecting';
 
   const current = mineflayer.createBot({
-    host: CONFIG.host,
-    port: CONFIG.port,
-    username: CONFIG.username,
-    version: CONFIG.version || undefined,
-    viewDistance: 'tiny',
-    checkTimeoutInterval: 60000
+    host: '9a3smp.mcsh.gg',
+    port: 25565,
+    username: 'Bot_AFK_247_6',
+    viewDistance: 'tiny'
   });
 
   bot = current;
 
   current.once('spawn', () => {
-    console.log('[Bot 6] Đã vào server!');
+    status = 'connected';
+    console.log('Bot 6 connected');
+
+    swingTimer = setInterval(() => {
+      if (bot === current && current.entity) {
+        try { current.swingArm('right'); } catch {}
+      }
+    }, 30000);
   });
 
-  current.on('kicked', reason => {
-    console.log('[Bot 6] Bị kick:', JSON.stringify(reason));
-  });
-
-  current.on('error', err => {
-    console.log('[Bot 6] Lỗi:', err.message);
-  });
+  current.on('error', err => console.log(err.message));
 
   current.once('end', () => {
     if (bot !== current) return;
 
     bot = null;
-    console.log('[Bot 6] Mất kết nối.');
+    status = 'disconnected';
+    clearInterval(swingTimer);
 
-    if (!stopped && !reconnectTimer) {
-      reconnectTimer = setTimeout(() => {
-        reconnectTimer = null;
+    if (!stopped) {
+      retry = setTimeout(() => {
+        retry = null;
         connect();
-      }, CONFIG.reconnectDelay);
+      }, 30000);
     }
   });
 }
 
+http.createServer((req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'application/json'
+  });
+
+  res.end(JSON.stringify({
+    bot: 'Bot 6',
+    status
+  }));
+}).listen(process.env.PORT || 3000, '0.0.0.0');
+
 function shutdown() {
   stopped = true;
-  clearTimeout(reconnectTimer);
-
-  if (bot) {
-    bot.quit();
-    bot = null;
-  }
-
+  clearTimeout(retry);
+  clearInterval(swingTimer);
+  if (bot) bot.quit();
   process.exit(0);
 }
 
