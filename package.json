@@ -3,9 +3,9 @@
   "name": "bot-number-6",
   "version": "1.0.0",
   "private": true,
-  "main": "bot.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node bot.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "mineflayer": "^4.33.0"
