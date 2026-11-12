@@ -1,79 +1,74 @@
 
 const mineflayer = require('mineflayer');
-const http = require('http');
 
 const CONFIG = {
   host: '9a3smp.mcsh.gg',
   port: 25565,
   username: 'Bot_AFK_247_6',
-  version: '1.20',
-  reconnectDelay: 15000,
+  version: false,
+  reconnectDelay: 30000
 };
 
 let bot = null;
-let reconnectTimeout = null;
+let reconnectTimer = null;
+let stopped = false;
 
-function createBot() {
-  if (bot) {
-    try {
-      bot.removeAllListeners();
-      bot.quit();
-    } catch {}
-    bot = null;
-  }
+function connect() {
+  if (stopped || bot) return;
 
-  console.log('Đang kết nối...');
+  console.log('[Bot 6] Đang kết nối...');
 
-  bot = mineflayer.createBot({
+  const current = mineflayer.createBot({
     host: CONFIG.host,
     port: CONFIG.port,
     username: CONFIG.username,
-    version: CONFIG.version,
+    version: CONFIG.version || undefined,
     viewDistance: 'tiny',
-    physicsEnabled: false,
+    checkTimeoutInterval: 60000
   });
 
+  bot = current;
 
-  bot.on('kicked', (reason) => {
-    console.log(
-      'Bị kick:',
-      typeof reason === 'object' ? JSON.stringify(reason) : reason
-    );
+  current.once('spawn', () => {
+    console.log('[Bot 6] Đã vào server!');
   });
 
-  bot.on('error', (err) => {
-    console.log('Lỗi:', err.message);
+  current.on('kicked', reason => {
+    console.log('[Bot 6] Bị kick:', JSON.stringify(reason));
   });
 
-  bot.on('end', () => {
-    console.log('Mất kết nối, sẽ vào lại sau 15s...');
+  current.on('error', err => {
+    console.log('[Bot 6] Lỗi:', err.message);
+  });
+
+  current.once('end', () => {
+    if (bot !== current) return;
+
     bot = null;
-    scheduleReconnect();
+    console.log('[Bot 6] Mất kết nối.');
+
+    if (!stopped && !reconnectTimer) {
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, CONFIG.reconnectDelay);
+    }
   });
 }
 
-function scheduleReconnect() {
-  if (reconnectTimeout) return;
+function shutdown() {
+  stopped = true;
+  clearTimeout(reconnectTimer);
 
-  reconnectTimeout = setTimeout(() => {
-    reconnectTimeout = null;
-    createBot();
-  }, CONFIG.reconnectDelay);
+  if (bot) {
+    bot.quit();
+    bot = null;
+  }
+
+  process.exit(0);
 }
 
-process.on('uncaughtException', (err) =>
-  console.log('Uncaught:', err.message)
-);
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
-process.on('unhandledRejection', (reason) =>
-  console.log('Rejection:', reason)
-);
-
-http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end('Bot is alive');
-}).listen(process.env.PORT || 10000, () => {
-  console.log('Keep-alive chạy trên cổng', process.env.PORT || 10000);
-});
-
-createBot();
+connect();
