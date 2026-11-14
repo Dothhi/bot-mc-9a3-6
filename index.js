@@ -1,3 +1,5 @@
+const mineflayer = require('mineflayer');
+const http = require('http');
 current.once('spawn', () => {
   status = 'connected';
   console.log('Bot 6 connected');
