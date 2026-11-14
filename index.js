@@ -1,26 +1,57 @@
 const mineflayer = require('mineflayer');
 const http = require('http');
-current.once('spawn', () => {
-  status = 'connected';
-  console.log('Bot 6 connected');
 
-  // Chuyển sang server PvP
-  setTimeout(() => {
-    if (bot === current) {
-      current.chat('/server pvp');
-      console.log('Switching to PvP...');
-    }
-  }, 2000);
+let bot = null;
+let status = 'connecting';
+let moveTimer = null;
 
-  // Di chuyển liên tục
-  let direction = false;
+function connect() {
+  const current = mineflayer.createBot({
+    host: '9a3smp.mcsh.gg',
+    port: 25565,
+    username: 'Bot_6',
+    version: false
+  });
 
-  moveTimer = setInterval(() => {
-    if (bot !== current || !current.entity) return;
+  bot = current;
 
-    direction = !direction;
+  current.once('spawn', () => {
+    status = 'connected';
+    console.log('Bot 6 connected');
 
-    current.setControlState('forward', direction);
-    current.setControlState('back', !direction);
-  }, 5000);
-});
+    setTimeout(() => {
+      if (bot === current) {
+        current.chat('/server pvp');
+        console.log('Switching to PvP...');
+      }
+    }, 2000);
+
+    let direction = false;
+
+    moveTimer = setInterval(() => {
+      if (bot !== current || !current.entity) return;
+
+      direction = !direction;
+
+      current.setControlState('forward', direction);
+      current.setControlState('back', !direction);
+    }, 5000);
+  });
+
+  current.on('end', () => {
+    if (bot !== current) return;
+
+    clearInterval(moveTimer);
+    moveTimer = null;
+    bot = null;
+    status = 'disconnected';
+
+    console.log('Bot 6 disconnected');
+  });
+
+  current.on('error', err => {
+    console.log('Bot 6 error:', err.message);
+  });
+}
+
+connect();
