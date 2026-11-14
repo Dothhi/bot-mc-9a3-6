@@ -20,7 +20,7 @@ const CONFIG_PATH = fs.existsSync(HF_DATA_DIR)
 console.log(`[CONFIG] 📂 Config path: ${CONFIG_PATH}`);
 
 const DEFAULT_CONFIG = {
-  host: '9a3smp.mcsh.gg',
+  host: '15.235.165.12',
   port: 25565,
   username: 'BotTreoServer',
   version: '1.21.1',
